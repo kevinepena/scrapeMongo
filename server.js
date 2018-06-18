@@ -27,8 +27,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Use express.static to serve the public folder as a static directory
 app.use(express.static("public"));
 
-// Connect to the Mongo DB
-// mongoose.connect("mongodb://localhost/articles_db");
+var exphbs = require("express-handlebars");
+
+app.engine("handlebars", exphbs({
+    defaultLayout: "main"
+}));
+app.set("view engine", "handlebars");
 
 var MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines";
 
@@ -38,6 +42,23 @@ mongoose.Promise = Promise;
 mongoose.connect(MONGODB_URI);
 
 // Routes
+
+// A GET route for the home page
+app.get("/", function (req, res) {
+
+    // Grab every document in the Articles collection
+    db.Display.find({})
+        .then(function (dArticle) {
+            // If we were able to successfully find Articles, send them back to the client
+            var hbsobject = {article : dArticle}
+            res.render("index", hbsobject);
+        })
+        .catch(function (err) {
+            // If an error occurred, send it to the client
+            res.json(err);
+        });
+    
+})
 
 // A GET route for scraping the echoJS website
 app.get("/scrape", function (req, res) {
@@ -60,7 +81,7 @@ app.get("/scrape", function (req, res) {
                 .attr("href");
 
             // Create a new Article using the `result` object built from scraping
-            db.Article.create(result)
+            db.Display.create(result)
                 .then(function (dbArticle) {
                     // View the added result in the console
                     console.log(dbArticle);
@@ -71,17 +92,65 @@ app.get("/scrape", function (req, res) {
                 });
         });
 
-        // If we were able to successfully scrape and save an Article, send a message to the client
-        res.send("Scrape Complete");
+        // If we were able to successfully scrape and save an Article, refresh
+        res.redirect('back');
     });
 });
+
+// Route for getting Display Articles from the db
+app.get("/display", function (req, res) {
+    // Grab every document in the Articles collection
+    db.Display.find({})
+        .then(function (dArticle) {
+            // If we were able to successfully find Articles, send them back to the client
+            res.json(dArticle);
+        })
+        .catch(function (err) {
+            // If an error occurred, send it to the client
+            res.json(err);
+        });
+});
+
+app.post("/articles", function (req, res) {
+    
+    var result = {};
+
+    result.title = req.body.title;
+    result.link = req.body.body;
+
+    db.Article.create(result)
+    .then(function (sArticle) {
+        // View the added result in the console
+        console.log(sArticle);
+    })
+    .catch(function (err) {
+        // If an error occurred, send it to the client
+        return res.json(err);
+    });
+})
 
 // Route for getting all Articles from the db
 app.get("/articles", function (req, res) {
     // Grab every document in the Articles collection
     db.Article.find({})
-        .then(function (dbArticle) {
+        .then(function (sArticle) {
             // If we were able to successfully find Articles, send them back to the client
+
+            var hbsobject = {article : sArticle}
+            res.render("articles", hbsobject);
+        })
+        .catch(function (err) {
+            // If an error occurred, send it to the client
+            res.json(err);
+        });
+});
+
+// Route for grabbing a specific Article by id, populate it with it's note
+app.get("/display/:id", function (req, res) {
+    // Using the id passed in the id parameter, prepare a query that finds the matching one in our db...
+    db.Display.findOne({ _id: req.params.id })
+        .then(function (dbArticle) {
+            // If we were able to successfully find an Article with the given id, send it back to the client
             res.json(dbArticle);
         })
         .catch(function (err) {
@@ -125,6 +194,7 @@ app.post("/articles/:id", function (req, res) {
             res.json(err);
         });
 });
+
 
 // Start the server
 app.listen(PORT, function () {

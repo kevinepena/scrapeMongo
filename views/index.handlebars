@@ -1,0 +1,31 @@
+<nav>
+    <div class="nav-wrapper">
+        <a href="#" class="brand-logo right">Logo</a>
+        <ul id="nav-mobile" class="left hide-on-med-and-down">
+            <li>
+                <a href="/">Home</a>
+            </li>
+            <li>
+                <a href="/articles">Saved Articles</a>
+            </li>
+
+            <a class="btn" href="/scrape">Scrape New Articles</a>
+
+        </ul>
+    </div>
+</nav>
+<div id="wrapper">
+    <h1>Note Scraper</h1>
+    <div id="articles">
+        {{#each article }}
+
+        <div data-id='{{this._id}}'>
+            {{this.title}}
+            <br />
+            <a href='{{this.link}}'>Link</a>
+            <button class="btn save"  data-id='{{this._id}}'>Save Article</button>
+        </div>
+        {{/each}}
+    </div>
+
+</div>
